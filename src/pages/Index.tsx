@@ -362,6 +362,8 @@ const SlideThanks = ({ visible }: { visible: boolean }) => (
   </div>
 );
 
+const PPTX_URL = "https://functions.poehali.dev/cfa3c3a0-078b-468b-a3bc-cf3a8667b865";
+
 const slideComponents = [SlideTitle, SlideIntro, SlideBiochem, SlideBrain, SlideOrgans, SlideSurvey, SlideMemo, SlideConclusion, SlideThanks];
 const slideTitles = ["Титульный", "Введение", "Биохимия", "Мозг и НС", "Органы", "Опрос", "Памятка", "Заключение", "Спасибо"];
 
@@ -369,6 +371,25 @@ export default function Index() {
   const [current, setCurrent] = useState(0);
   const [animating, setAnimating] = useState(false);
   const [direction, setDirection] = useState<"next" | "prev">("next");
+  const [downloading, setDownloading] = useState(false);
+
+  const downloadPptx = async () => {
+    setDownloading(true);
+    try {
+      const res = await fetch(PPTX_URL);
+      const data = await res.json();
+      const bytes = Uint8Array.from(atob(data.file), c => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.filename || "presentation.pptx";
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const goTo = useCallback((index: number) => {
     if (animating || index === current) return;
@@ -408,9 +429,17 @@ export default function Index() {
         </span>
       </div>
 
-      {/* Current slide label */}
-      <div className="absolute top-6 left-8 z-20">
+      {/* Current slide label + download button */}
+      <div className="absolute top-6 left-8 z-20 flex items-center gap-4">
         <span className="font-rubik text-white/30 text-xs tracking-widest uppercase">{slideTitles[current]}</span>
+        <button
+          onClick={downloadPptx}
+          disabled={downloading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-rubik font-medium transition-all duration-200 border border-purple-500/40 bg-purple-500/10 text-purple-300 hover:bg-purple-500/25 hover:border-purple-400/60 hover:text-white disabled:opacity-50"
+        >
+          <Icon name={downloading ? "Loader2" : "Download"} size={13} className={downloading ? "animate-spin" : ""} />
+          {downloading ? "Генерируем..." : "Скачать .pptx"}
+        </button>
       </div>
 
       {/* Slide */}
